@@ -1,6 +1,6 @@
 import UserModel from "../models/UserModels.js";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+
 
 
 export const registerUserController = async (req, res) => {
@@ -31,7 +31,7 @@ export const registerUserController = async (req, res) => {
         const user = await UserModel.create({
             name,
             email,
-            password: hashedPassword,
+            password
         });
 
         res.status(201).send({
@@ -69,10 +69,12 @@ export const loginUserController = async (req, res) => {
                 message: "User not found",
             });
         }
-
+        console.log("Input Password:", password);
+        console.log("Stored Hashed Password:", user.password);
         // Compare password
-        const isPasswordMatch = await bcrypt.compare(password, user.password);
-        if (!isPasswordMatch) {
+        const isMatch = await user.comparePassword(password);
+        console.log("Password Match:", isMatch);
+        if (!isMatch) {
             return res.status(400).send({
                 success: false,
                 message: "Invalid credentials",
@@ -80,19 +82,12 @@ export const loginUserController = async (req, res) => {
         }
 
         // Generate JWT token
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-            expiresIn: "1d",
-        });
-
+        const token = user.generateToken();
         res.status(200).send({
             success: true,
             message: "Login successful",
             token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-            },
+            user,
         });
     } catch (error) {
         console.error(error);
@@ -104,17 +99,17 @@ export const loginUserController = async (req, res) => {
     }
 };
 
-export const createUserController=async(req,res)=>{
+export const createUserController = async (req, res) => {
     try {
-        const {name,email,password}=req.body;
-        if(!name || !email || !password){
-          return  res.status(404).send({
+        const { name, email, password } = req.body;
+        if (!name || !email || !password) {
+            return res.status(404).send({
                 success: false,
                 message: 'please required all fields'
-          })
+            })
         }
-        const user=await UserModel.create({
-            name,email,password
+        const user = await UserModel.create({
+            name, email, password
         })
         res.status(200).send({
             success: true,
@@ -125,20 +120,20 @@ export const createUserController=async(req,res)=>{
         console.log(error);
         res.status(500).send({
             success: false,
-            message:'Error creating user',
-            error:  error.message
+            message: 'Error creating user',
+            error: error.message
         })
     }
 }
 
-export const getUserController=async(req,res)=>{
+export const getUserController = async (req, res) => {
     try {
-      const user=await UserModel.find()
-        if(!user){
-          return  res.status(404).send({
+        const user = await UserModel.find()
+        if (!user) {
+            return res.status(404).send({
                 success: false,
                 message: 'for not found'
-          })
+            })
         }
         res.status(200).send({
             success: true,
@@ -149,20 +144,20 @@ export const getUserController=async(req,res)=>{
         console.log(error);
         res.status(500).send({
             success: false,
-            message:'Error getAll api user',
-            error:  error.message
+            message: 'Error getAll api user',
+            error: error.message
         })
     }
 }
 
-export const getByidController=async(req,res)=>{
+export const getByidController = async (req, res) => {
     try {
-      const user=await UserModel.findById(req.params.id)
-        if(!user){
-          return  res.status(404).send({
+        const user = await UserModel.findById(req.params.id)
+        if (!user) {
+            return res.status(404).send({
                 success: false,
                 message: 'for not found'
-          })
+            })
         }
         res.status(200).send({
             success: true,
@@ -173,25 +168,25 @@ export const getByidController=async(req,res)=>{
         console.log(error);
         res.status(500).send({
             success: false,
-            message:'Error getByid api user',
-            error:  error.message
+            message: 'Error getByid api user',
+            error: error.message
         })
     }
 }
 
-export const updateUserController=async(req,res)=>{
+export const updateUserController = async (req, res) => {
     try {
-      const user=await UserModel.findByIdAndUpdate(req.params.id)
-        if(!user){
-          return  res.status(404).send({
+        const user = await UserModel.findByIdAndUpdate(req.params.id)
+        if (!user) {
+            return res.status(404).send({
                 success: false,
                 message: 'for not found'
-          })
+            })
         }
-        const {name,email,password}=req.body;
-        if(name) user.name=name;
-        if(email) user.email=email;
-        if(password) user.password=password;
+        const { name, email, password } = req.body;
+        if (name) user.name = name;
+        if (email) user.email = email;
+        if (password) user.password = password;
 
         await user.save()
         res.status(200).send({
@@ -203,21 +198,24 @@ export const updateUserController=async(req,res)=>{
         console.log(error);
         res.status(500).send({
             success: false,
-            message:'Error update api user',
-            error:  error.message
+            message: 'Error update api user',
+            error: error.message
         })
     }
 }
 
-export const deleteController=async(req,res)=>{
+export const deleteController = async (req, res) => {
     try {
-      const user=await UserModel.findByIdAndDelete(req.params.id)
-        if(!user){
-          return  res.status(404).send({
+        const user = await UserModel.findById(req.params.id);
+        if (!user) {
+            return res.status(404).send({
                 success: false,
                 message: 'for not found'
-          })
-        }
+            })
+        };
+        // Mark the user as deleted
+        user.isDelate = true;
+        await user.save();
         res.status(200).send({
             success: true,
             message: 'delete successfully',
@@ -227,8 +225,8 @@ export const deleteController=async(req,res)=>{
         console.log(error);
         res.status(500).send({
             success: false,
-            message:'Error delete api user',
-            error:  error.message
+            message: 'Error delete api user',
+            error: error.message
         })
     }
 }
