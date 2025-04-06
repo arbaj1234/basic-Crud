@@ -5,15 +5,6 @@ import bcrypt from "bcrypt";
 
 export const registerUserController = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
-
-        // Check for required fields
-        if (!name || !email || !password) {
-            return res.status(400).send({
-                success: false,
-                message: "All fields are required",
-            });
-        }
 
         // Check if user already exists
         const existingUser = await UserModel.findOne({ email });
@@ -69,11 +60,8 @@ export const loginUserController = async (req, res) => {
                 message: "User not found",
             });
         }
-        console.log("Input Password:", password);
-        console.log("Stored Hashed Password:", user.password);
         // Compare password
         const isMatch = await user.comparePassword(password);
-        console.log("Password Match:", isMatch);
         if (!isMatch) {
             return res.status(400).send({
                 success: false,
@@ -101,13 +89,13 @@ export const loginUserController = async (req, res) => {
 
 export const createUserController = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
-        if (!name || !email || !password) {
-            return res.status(404).send({
-                success: false,
-                message: 'please required all fields'
-            })
-        }
+        // const { name, email, password } = req.body;
+        // if (!name || !email || !password) {
+        //     return res.status(404).send({
+        //         success: false,
+        //         message: 'please required all fields'
+        //     })
+        // }
         const user = await UserModel.create({
             name, email, password
         })
@@ -206,7 +194,7 @@ export const updateUserController = async (req, res) => {
 
 export const deleteController = async (req, res) => {
     try {
-        const user = await UserModel.findById(req.params.id);
+        const user = await UserModel.deleteOne(req.params.id);
         if (!user) {
             return res.status(404).send({
                 success: false,
